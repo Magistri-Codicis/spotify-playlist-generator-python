@@ -36,9 +36,9 @@ playlist_name = input("Enter a name for the playlist: ")
 
 # Step 7: create playlist and add tracks
 
-
+shuffle = input("Shuffle tracks? (y/n): ")
 # get all tracks
-tracks = util.get_all_tracks(selected_artists, 10, True)
+tracks = util.get_all_tracks(selected_artists, 10, shuffle == 'y')
 
 # create playlist
 util.create_playlist(playlist_name)

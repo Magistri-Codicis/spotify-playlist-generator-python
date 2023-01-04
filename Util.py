@@ -12,6 +12,13 @@ def load_env():
             os.environ[key] = value.rstrip()
 
 
+def flattenArray(array):
+    for sublist in array:
+        for item in sublist:
+            yield item
+    return array
+
+
 class Util:
 
     def __init__(self):
@@ -44,12 +51,13 @@ class Util:
         return tracks
 
     def add_tracks(self, tracks):
-        self.sp.playlist_add_items(self.playlist_id, [tracks])
+        print(tracks)
+        self.sp.playlist_add_items(self.playlist_id, tracks)
 
     def get_all_tracks(self, selected_artists, tracks_per_artist=5, shuffle=False):
         tracks = []
         for artist, artist_id in selected_artists.items():
-            tracks.append(self.get_top_tracks(artist_id, tracks_per_artist))
+            tracks.extend(self.get_top_tracks(artist_id, tracks_per_artist))
         if shuffle:
             random.shuffle(tracks)
         return tracks
