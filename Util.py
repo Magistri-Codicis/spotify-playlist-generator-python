@@ -26,7 +26,6 @@ class Util:
         self.username = None
         self.playlist_id = None
         load_env()
-        self.authenticate()
 
     def authenticate(self):
         scope = 'playlist-modify-public'
@@ -36,8 +35,11 @@ class Util:
     def search_artists(self, artist_list):
         result = []
         for search_artist in artist_list:
-            result.append(self.sp.search(q='artist:' + search_artist, type='artist', limit=5))
+            result.append(self.search_artist(search_artist))
         return result
+
+    def search_artist(self, query, limit=3):
+        return self.sp.search(q='artist:' + query, type='artist', limit=limit)
 
     def create_playlist(self, playlist_name):
         self.sp.user_playlist_create(self.username, playlist_name)
