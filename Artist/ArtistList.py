@@ -1,4 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QHBoxLayout, QLabel, QScrollArea
+from typing import List
+
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QHBoxLayout, QScrollArea
 
 from Artist.ArtistCard import ArtistCard
 from Artist.ArtistListEntry import ArtistListEntry
@@ -6,11 +8,11 @@ from Artist.ListItem import ListItem
 
 
 class ArtistList(QWidget):
-    def __init__(self, entries=[], parent=None, util=None):
+    def __init__(self, artists: List[ArtistListEntry] = [], parent=None, util=None):
         super().__init__(parent)
 
         self.util = util
-        self.entries = entries
+        self.entries = artists
         main_layout = QVBoxLayout()
         self.setLayout(main_layout)
         self.search_layout = QHBoxLayout()
@@ -45,7 +47,6 @@ class ArtistList(QWidget):
 
         main_layout.addLayout(self.search_layout)
         main_layout.addLayout(self.artist_selection_layout)
-
         self.refreshList()
 
     def addArtist(self):

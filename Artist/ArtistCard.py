@@ -47,13 +47,13 @@ class ArtistCard(QWidget):
             main_layout.addLayout(entry_layout)
 
             # Store reference to thumbnail label in result_item
-            result_item.thumbnail_label = thumbnail_label
+            result_item.image_label = thumbnail_label
 
             # Update thumbnail label with image data
             image_data = getImageData(result_item.image_url)
             pixmap = QPixmap()
             pixmap.loadFromData(image_data)
-            pixmap = pixmap.scaledToWidth(200)
+            pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatioByExpanding)
             # Make the pixmap round
             mask = QPixmap(pixmap.size())
             mask.fill(Qt.transparent)
