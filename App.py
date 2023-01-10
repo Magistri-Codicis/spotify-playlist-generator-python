@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QBoxLayout, QPushButton, QLab
 
 import Util
 from Artist.ArtistList import ArtistList
+from Settings.Settings import Settings
 
 
 class App:
@@ -28,6 +29,9 @@ class App:
         self.artist_list = ArtistList(util=self.util)
         self.artist_selection_layout.addWidget(self.artist_list)
 
+        self.settings_layout = QBoxLayout(QBoxLayout.TopToBottom)
+        self.settings_layout.addWidget(Settings(util=self.util))
+
         self.main_layout.addLayout(self.username_layout)
 
         self.window.show()
@@ -35,6 +39,7 @@ class App:
 
     def loginCallback(self):
         self.main_layout.addLayout(self.artist_selection_layout)
+        self.main_layout.addLayout(self.settings_layout)
 
     def login(self):
         self.util.authenticate()

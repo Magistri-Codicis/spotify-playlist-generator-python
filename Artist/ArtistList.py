@@ -1,6 +1,6 @@
 from typing import List
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QHBoxLayout, QScrollArea
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QHBoxLayout, QScrollArea, QTextEdit
 
 from Artist.ArtistCard import ArtistCard
 from Artist.ArtistListEntry import ArtistListEntry
@@ -17,13 +17,13 @@ class ArtistList(QWidget):
         self.setLayout(main_layout)
         self.search_layout = QHBoxLayout()
 
-        self.search_bar = QLineEdit()
+        self.search_bar = QTextEdit()
         self.search_bar.setPlaceholderText('Enter Artist')
         self.search_bar.setToolTip('Enter Artist')
         self.search_bar.textChanged.connect(lambda: self.search_bar.setStyleSheet("border: 1px solid black;"))
         self.search_button = QPushButton('Add')
         self.search_button.clicked.connect(self.addArtist)
-        self.search_bar.returnPressed.connect(self.addArtist)
+        self.search_bar.setMinimumHeight(100)
 
         self.search_layout.addWidget(self.search_bar)
         self.search_layout.addWidget(self.search_button)
@@ -33,6 +33,8 @@ class ArtistList(QWidget):
 
         self.scroll_area = QScrollArea()
         self.scroll_widget = QWidget()
+
+        self.scroll_area.setMinimumSize(800, 300)
 
         self.list_layout = QVBoxLayout()
 
@@ -50,20 +52,28 @@ class ArtistList(QWidget):
         self.refreshList()
 
     def addArtist(self):
-        entry = ArtistListEntry(self.search_bar.text())
-        entry.search(self.util)
-        if len(entry.result_list) > 0:
-            self.entries.append(entry)
-            self.list_layout.addWidget(ListItem(entry, self))
-            self.search_bar.setToolTip('Enter Artist')
-        else:
-            try:
-                self.entries.remove(entry)
-                self.search_bar.setToolTip('No results found')
-                # make red border
-                self.search_bar.setStyleSheet("border: 1px solid red;")
-            except ValueError:
-                pass
+        query = self.search_bar.toPlainText()
+        queries = []
+        for line in query.splitlines():
+            for comma in line.split(','):
+                for semi in comma.split(';'):
+                    queries.append(semi.strip())
+
+        for query in queries:
+            entry = ArtistListEntry(query)
+            entry.search(self.util)
+            if len(entry.result_list) > 0:
+                self.entries.append(entry)
+                self.list_layout.addWidget(ListItem(entry, self))
+                self.search_bar.setToolTip('Enter Artist')
+            else:
+                try:
+                    self.entries.remove(entry)
+                    self.search_bar.setToolTip('No results found')
+                    # make red border
+                    self.search_bar.setStyleSheet("border: 1px solid red;")
+                except ValueError:
+                    pass
 
     def refreshList(self):
         self.clearList()
