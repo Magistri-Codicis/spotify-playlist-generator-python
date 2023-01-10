@@ -1,9 +1,8 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLineEdit, QBoxLayout, QPushButton, QLabel
+from PyQt5.QtWidgets import QApplication, QWidget, QBoxLayout, QPushButton, QLabel
 
-from ArtistCard import CardComponent
 import Util
-from ArtistList import ArtistList
+from Artist.ArtistList import ArtistList
 
 
 class App:
@@ -14,7 +13,6 @@ class App:
         self.main_layout = QBoxLayout(QBoxLayout.TopToBottom)
         self.window.setLayout(self.main_layout)
         self.window.setWindowTitle('Spotify Playlist Generator')
-        # self.window.setGeometry(100, 100, 800, 600)
         self.username_layout = QBoxLayout(QBoxLayout.TopToBottom)
         self.login_button = QPushButton('Login')
         if self.util.username:
