@@ -38,6 +38,7 @@ class Util:
         self.sp: spotipy.Spotify = None
         self.username = None
         self.playlist_id = None
+        self.output_widget = None
         load_env()
 
     def authenticate(self):
@@ -87,7 +88,6 @@ class Util:
             raw_tracks.extend(track_catalog['tracks'])
 
         raw_tracks.sort(key=lambda x: x['popularity'], reverse=True)
-        print("Raw Tracks: " + str(len(raw_tracks)))
         loop_count = 0
         loop_limit = limit * 2
         # TODO: Refactor entire code to use dict instead of list
@@ -106,22 +106,7 @@ class Util:
         return tracks
 
     def add_tracks(self, tracks):
-        print(tracks)
         self.sp.playlist_add_items(self.playlist_id, tracks)
-
-    def replace_duplicates(self, artist: ArtistListEntry, tracks_per_artist, search_tracks: dict,
-                           existing_tracks: dict, offset=0):
-        intersection = set(search_tracks) & set(existing_tracks)
-        if len(intersection) > 0:
-            for i in intersection:
-                search_tracks.pop(i)
-            print("Removed " + str(len(intersection)) + " duplicates")
-            new_tracks = self.get_filler_tracks(artist.result_list[artist.selected_artist].artist_id,
-                                                current_list=search_tracks | existing_tracks,
-                                                limit=tracks_per_artist - len(search_tracks),
-                                                offset=len(search_tracks) + offset)
-            print("New tracks: " + str(len(new_tracks)))
-            search_tracks.update(new_tracks)
 
     def get_all_tracks(self, selected_artists: List[ArtistListEntry], tracks_per_artist=5, shuffle=False):
         tracks = dict()
@@ -129,10 +114,6 @@ class Util:
         for artist_entry in selected_artists:
             search_tracks = self.get_filler_tracks(artist_entry.result_list[artist_entry.selected_artist].artist_id,
                                                    limit=tracks_per_artist, current_list=tracks)
-            print("Artist: " + artist_entry.result_list[artist_entry.selected_artist].name)
-            print("Before: " + str(len(search_tracks)))
-            self.replace_duplicates(artist_entry, tracks_per_artist, search_tracks, tracks)
-            print("After :" + str(len(search_tracks)))
             tracks.update(search_tracks)
         return_tracks.extend(tracks.keys())
         if shuffle:
