@@ -61,16 +61,9 @@ class Util:
         self.sp.user_playlist_create(self.username, playlist_name, description=playlist_description)
         self.playlist_id = self.sp.user_playlists(self.username)['items'][0]['id']
 
-    def get_top_tracks(self, artist_id, count=5, offset=0, country='CH'):
-        tracks = []
-        result = self.sp.artist_top_tracks(artist_id, country=country)
-        for track in result['tracks'][:count]:
-            tracks.append(track['id'])
-        return tracks
-
-    def get_filler_tracks(self, artist_id, current_list=[], limit=5, offset=0, country='CH'):
+    def get_filler_tracks(self, artist_id, current_list: dict = dict, limit=5, offset=0, country='CH'):
         raw_tracks = []
-        tracks = []
+        tracks = dict()
         request_limit = limit + offset
         if request_limit <= 50:
             result = self.sp.artist_albums(artist_id, limit=request_limit, country=country,
@@ -97,32 +90,42 @@ class Util:
         print("Raw Tracks: " + str(len(raw_tracks)))
         loop_count = 0
         loop_limit = limit * 2
+        # TODO: Refactor entire code to use dict instead of list
         for track in raw_tracks[offset:]:
-            if track['id'] not in current_list:
-                tracks.append(track['id'])
+            compare_tracks = tracks | current_list
+            if track['id'] not in compare_tracks.keys() and any(
+                    artist['id'] == artist_id for artist in track['artists']) and \
+                    not any(compare_tracks[comp_track]['name'] == track['name'] for comp_track in compare_tracks):
+                tracks[track['id']] = {'name': track['name'], 'artist': track['artists'][0]['id']}
             if len(tracks) == limit or loop_count >= loop_limit:
                 break
             loop_count += 1
+        if len(tracks) < limit:
+            tracks.update(self.get_filler_tracks(artist_id, current_list | tracks, limit - len(tracks),
+                                                 offset + len(raw_tracks), country))
         return tracks
 
     def add_tracks(self, tracks):
         print(tracks)
         self.sp.playlist_add_items(self.playlist_id, tracks)
 
-    def replace_duplicates(self, artist: ArtistListEntry, tracks_per_artist, search_tracks, existing_tracks, offset=0):
+    def replace_duplicates(self, artist: ArtistListEntry, tracks_per_artist, search_tracks: dict,
+                           existing_tracks: dict, offset=0):
         intersection = set(search_tracks) & set(existing_tracks)
         if len(intersection) > 0:
             for i in intersection:
-                search_tracks.remove(i)
+                search_tracks.pop(i)
+            print("Removed " + str(len(intersection)) + " duplicates")
             new_tracks = self.get_filler_tracks(artist.result_list[artist.selected_artist].artist_id,
-                                                existing_tracks + search_tracks,
+                                                current_list=search_tracks | existing_tracks,
                                                 limit=tracks_per_artist - len(search_tracks),
-                                                offset=offset + tracks_per_artist)
+                                                offset=len(search_tracks) + offset)
             print("New tracks: " + str(len(new_tracks)))
-            search_tracks.extend(new_tracks)
+            search_tracks.update(new_tracks)
 
     def get_all_tracks(self, selected_artists: List[ArtistListEntry], tracks_per_artist=5, shuffle=False):
-        tracks = []
+        tracks = dict()
+        return_tracks = []
         for artist_entry in selected_artists:
             search_tracks = self.get_filler_tracks(artist_entry.result_list[artist_entry.selected_artist].artist_id,
                                                    limit=tracks_per_artist, current_list=tracks)
@@ -130,10 +133,11 @@ class Util:
             print("Before: " + str(len(search_tracks)))
             self.replace_duplicates(artist_entry, tracks_per_artist, search_tracks, tracks)
             print("After :" + str(len(search_tracks)))
-            tracks.extend(search_tracks)
+            tracks.update(search_tracks)
+        return_tracks.extend(tracks.keys())
         if shuffle:
-            random.shuffle(tracks)
-        return tracks
+            random.shuffle(return_tracks)
+        return return_tracks
 
     def generate_playlist(self, artists, tracks_per_artist, playlist_name, playlist_description, shuffle,
                           output_widget: QTextEdit = None):
