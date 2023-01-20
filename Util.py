@@ -106,7 +106,11 @@ class Util:
         return tracks
 
     def add_tracks(self, tracks):
-        self.sp.playlist_add_items(self.playlist_id, tracks)
+        if  len(tracks) > 100:
+            for i in range(0, len(tracks), 100):
+                self.sp.playlist_add_items(self.playlist_id, tracks[i:i + 100])
+        else:
+            self.sp.playlist_add_items(self.playlist_id, tracks)
 
     def get_all_tracks(self, selected_artists: List[ArtistListEntry], tracks_per_artist=5, shuffle=False):
         tracks = dict()
