@@ -9,7 +9,6 @@ from Settings.Settings import Settings
 class App:
     def __init__(self):
         self.util = Util.Util()
-        self.util.signal.connect(self.sigCallback)
         self.app = QApplication(sys.argv)
         self.window = QWidget()
         self.main_layout = QBoxLayout(QBoxLayout.TopToBottom)
@@ -37,9 +36,6 @@ class App:
 
         self.window.show()
         self.app.exec_()
-
-    def sigCallback(self, type, msg, progress):
-        print(type, msg, progress)
 
     def loginCallback(self):
         self.main_layout.addLayout(self.artist_selection_layout)

@@ -1,1 +1,1 @@
-pip install spotipy
+pip install spotipy PyQt5
