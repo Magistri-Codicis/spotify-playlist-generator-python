@@ -5,6 +5,7 @@ from typing import List
 import requests.exceptions
 import spotipy
 import urllib3.exceptions
+from PyQt5.QtCore import pyqtSignal, QThread
 from PyQt5.QtWidgets import QMessageBox, QWidget, QTextEdit
 from spotipy import SpotifyOAuth
 
@@ -32,9 +33,12 @@ def log_to_widget(text, output_widget: QTextEdit):
         print(text)
 
 
-class Util:
+class Util(QThread):
 
+    # TODO: Refactor to use signals
     def __init__(self):
+        super(Util, self).__init__()
+        self._signal = pyqtSignal(int, str, int)
         self.sp: spotipy.Spotify = None
         self.username = None
         self.playlist_id = None
@@ -46,6 +50,7 @@ class Util:
             scope = 'playlist-modify-public'
             self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
             self.username = self.sp.me()['display_name']
+            self._signal.emit('Successfully authenticated as ' + self.username, 100)
         except requests.exceptions.ConnectionError or urllib3.exceptions.MaxRetryError:
             QMessageBox.about(QWidget(), "Network Error", "No Connection established. Check you Internet connection.")
 
@@ -90,7 +95,6 @@ class Util:
         raw_tracks.sort(key=lambda x: x['popularity'], reverse=True)
         loop_count = 0
         loop_limit = limit * 2
-        # TODO: Refactor entire code to use dict instead of list
         for track in raw_tracks[offset:]:
             compare_tracks = tracks | current_list
             if track['id'] not in compare_tracks.keys() and any(
