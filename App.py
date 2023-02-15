@@ -26,11 +26,12 @@ class App:
 
         self.artist_selection_layout = QBoxLayout(QBoxLayout.LeftToRight)
 
-        self.artist_list = ArtistList(util=self.util)
+        self.artist_list = ArtistList(util=self.util, app=self)
         self.artist_selection_layout.addWidget(self.artist_list)
 
         self.settings_layout = QBoxLayout(QBoxLayout.TopToBottom)
-        self.settings_layout.addWidget(Settings(util=self.util, artist_list=self.artist_list.entries))
+        self.settings = Settings(util=self.util, artist_list=self.artist_list.entries, app=self)
+        self.settings_layout.addWidget(self.settings)
 
         self.main_layout.addLayout(self.username_layout)
 
