@@ -33,22 +33,39 @@ def log_to_widget(text, output_widget: QTextEdit):
         print(text)
 
 
-class Util:
+class Util(QThread):
+    output = pyqtSignal(int, str, int)
+    progress = 0
 
     # TODO: Refactor to use signals
     def __init__(self):
         super(Util, self).__init__()
+        self.shuffle = None
+        self.playlist_description = None
+        self.playlist_name = None
+        self.tracks_per_artist = None
+        self.artists = None
+        self.isGenerating = False
         self.sp: spotipy.Spotify = None
         self.username = None
         self.playlist_id = None
         self.output_widget = None
         load_env()
 
+    def run(self):
+        self.generate(self.artists, self.tracks_per_artist, self.playlist_name, self.playlist_description,
+                      self.shuffle)
+
+    def __del__(self):
+        self.exiting = True
+        self.wait()
+
     def authenticate(self):
         try:
             scope = 'playlist-modify-public'
             self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
             self.username = self.sp.me()['display_name']
+            self.output.emit(0, 'Successfully authenticated as ' + self.username, 100)
         except requests.exceptions.ConnectionError or urllib3.exceptions.MaxRetryError:
             QMessageBox.about(QWidget(), "Network Error", "No Connection established. Check you Internet connection.")
 
@@ -62,8 +79,10 @@ class Util:
         return self.sp.search(q='artist:' + query, type='artist', limit=limit)
 
     def create_playlist(self, playlist_name, playlist_description=""):
+        self.output.emit(0, "Creating Playlist...", self.progress)
         self.sp.user_playlist_create(self.username, playlist_name, description=playlist_description)
         self.playlist_id = self.sp.user_playlists(self.username)['items'][0]['id']
+        self.progress += 10
 
     def get_filler_tracks(self, artist_id, current_list: dict = dict, limit=5, offset=0, country='CH'):
         raw_tracks = []
@@ -108,40 +127,60 @@ class Util:
         return tracks
 
     def add_tracks(self, tracks):
-        if  len(tracks) > 100:
+        self.output.emit(0, "Adding Tracks...", self.progress)
+        if len(tracks) > 100:
             for i in range(0, len(tracks), 100):
+                self.progress += 10 / len(tracks)
                 self.sp.playlist_add_items(self.playlist_id, tracks[i:i + 100])
+                self.output.emit(0, "Adding Tracks...", self.progress)
         else:
             self.sp.playlist_add_items(self.playlist_id, tracks)
+            self.progress += 10
 
     def get_all_tracks(self, selected_artists: List[ArtistListEntry], tracks_per_artist=5, shuffle=False):
+        self.progress += 10
+        self.output.emit(0, "Searching for tracks...", self.progress)
         tracks = dict()
         return_tracks = []
         for artist_entry in selected_artists:
+            self.output.emit(0,
+                             "Searching for tracks by " + artist_entry.result_list[artist_entry.selected_artist].name,
+                             self.progress)
             search_tracks = self.get_filler_tracks(artist_entry.result_list[artist_entry.selected_artist].artist_id,
                                                    limit=tracks_per_artist, current_list=tracks)
             tracks.update(search_tracks)
+            self.progress += int(60 / len(selected_artists))
         return_tracks.extend(tracks.keys())
         if shuffle:
+            self.output.emit(0, "Shuffling tracks...", self.progress)
             random.shuffle(return_tracks)
         return return_tracks
 
     def generate_playlist(self, artists, tracks_per_artist, playlist_name, playlist_description, shuffle,
                           output_widget: QTextEdit = None):
-        log_to_widget("Configuration", output_widget)
-        log_to_widget("Tracks per artist: " + str(tracks_per_artist), output_widget)
-        log_to_widget("Playlist name: " + playlist_name, output_widget)
-        log_to_widget("Playlist description: " + playlist_description, output_widget)
-        log_to_widget("Shuffle: " + str(shuffle), output_widget)
-        log_to_widget("--------------------------", output_widget)
-        log_to_widget("Searching for tracks.....", output_widget)
+        self.artists = artists
+        self.tracks_per_artist = tracks_per_artist
+        self.playlist_name = playlist_name
+        self.playlist_description = playlist_description
+        self.shuffle = shuffle
+        self.output_widget = output_widget
+        self.start()
+
+    def generate(self, artists, tracks_per_artist, playlist_name, playlist_description, shuffle):
+        self.progress = 0
+        self.output.emit(0, "Starting to generate....", self.progress)
+        self.output.emit(0, "Configuration", self.progress)
+        self.output.emit(0, "Tracks per artist: " + str(tracks_per_artist), self.progress)
+        self.output.emit(0, "Playlist name: " + playlist_name, self.progress)
+        self.output.emit(0, "Playlist description: " + playlist_description, self.progress)
+        self.output.emit(0, "Shuffle: " + str(shuffle), self.progress)
+        self.output.emit(0, "--------------------------", self.progress)
         tracks = self.get_all_tracks(artists, tracks_per_artist, shuffle)
-        log_to_widget("Found " + str(len(tracks)) + " tracks", output_widget)
-        log_to_widget("Creating playlist.....", output_widget)
+        self.output.emit(0, "Found " + str(len(tracks)) + " tracks", self.progress)
         self.create_playlist(playlist_name, playlist_description)
-        log_to_widget("Adding tracks to playlist.....", output_widget)
+        self.output.emit(0, "Created playlist", self.progress)
         self.add_tracks(tracks)
-        log_to_widget("Done", output_widget)
-        log_to_widget("--------------------------", output_widget)
-        log_to_widget("Playlist created: " + f"https://open.spotify.com/playlist/{self.playlist_id}", output_widget)
-        return f"https://open.spotify.com/playlist/{self.playlist_id}"
+        self.output.emit(0, "Added tracks", self.progress)
+        self.progress = 100
+        self.output.emit(1, "Finished", self.progress)
+        self.output.emit(3, f"Playlist at: https://open.spotify.com/playlist/{self.playlist_id}", self.progress)

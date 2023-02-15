@@ -1,4 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QBoxLayout, QLineEdit, QTextEdit, QSpinBox, QCheckBox, QPushButton, QLabel
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QBoxLayout, QLineEdit, QTextEdit, QSpinBox, QCheckBox, QPushButton, QLabel, \
+    QProgressBar
 
 
 class Settings(QWidget):
@@ -37,12 +39,18 @@ class Settings(QWidget):
         self.do_shuffle_input.setText("Shuffle Playlist")
 
         self.output_layout = QBoxLayout(QBoxLayout.TopToBottom)
+
+        self.pbar = QProgressBar(self)
+        self.pbar.setAlignment(Qt.AlignCenter)
+
         self.output_label = QLabel("Output")
         self.output_scroll = QTextEdit()
         self.output_scroll.setReadOnly(True)
 
         self.output_layout.addWidget(self.output_label)
         self.output_layout.addWidget(self.output_scroll)
+
+        self.output_layout.addWidget(self.pbar)
 
         self.main_layout.addWidget(self.song_count_label)
         self.main_layout.addWidget(self.song_count_input)
@@ -69,3 +77,20 @@ class Settings(QWidget):
         self.playlist_url = self.util.generate_playlist(self.artist_list, self.song_count, self.playlist_name,
                                                         self.playlist_description,
                                                         self.do_shuffle, self.output_scroll)
+        self.util.output.connect(self.sigCallback)
+
+    def sigCallback(self, type, msg, progress):
+        if type == 0:
+            self.pbar.setValue(progress)
+            self.pbar.setFormat(msg + " (%p%)")
+            self.output_scroll.append(msg)
+        elif type == 2:
+            self.pbar.setValue(0)
+            self.pbar.setFormat(msg + " (%p%)")
+            self.output_scroll.append(msg)
+        elif type == 1:
+            self.pbar.setValue(100)
+            self.pbar.setFormat(msg + " (%p%)")
+            self.output_scroll.append(msg)
+        elif type == 3:
+            self.output_scroll.append(msg)
