@@ -1,5 +1,6 @@
 from typing import List
 
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QHBoxLayout, QScrollArea, QTextEdit, QDialog, \
     QMessageBox
 
@@ -22,8 +23,8 @@ class ArtistList(QWidget):
         self.search_bar.setPlaceholderText('Enter Artists')
         self.search_bar.setToolTip('Enter Artists')
         self.search_bar.textChanged.connect(lambda: self.textChangeCallback())
+        self.search_bar.mousePressEvent = self.searchBarClickCallback
         self.search_bar.setMinimumHeight(100)
-
         self.search_button = QPushButton('Add')
         self.search_button.clicked.connect(lambda: self.addClickCallback())
         self.search_button.setDisabled(True)
@@ -63,6 +64,13 @@ class ArtistList(QWidget):
     def addClickCallback(self):
         self.addArtist()
         self.app.settings.generate_button.setDisabled(len(self.entries) <= 0)
+        self.search_bar.setFocus()
+        # self.search_bar.selectAll()
+
+    def searchBarClickCallback(self, event):
+        self.search_bar.setFocus()
+        self.search_bar.selectAll()
+        self.search_bar.setTextColor(QColor.fromRgb(0, 0, 0))
 
     def parseArtists(self, text):
         queries = []
@@ -76,14 +84,13 @@ class ArtistList(QWidget):
     def addArtist(self):
         query = self.search_bar.toPlainText()
         queries = self.parseArtists(query)
+        self.search_bar.clear()
         for query in queries:
             if query in [entry.query for entry in self.entries]:
                 add_anyways = QMessageBox.question(self, 'Duplicate Artist',
                                                    f'Artist ({query}) already exists. Add anyway?',
                                                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-                if add_anyways == 'yes':
-                    pass
-                else:
+                if add_anyways != QMessageBox.Yes:
                     continue
 
             entry = ArtistListEntry(query)
@@ -91,12 +98,13 @@ class ArtistList(QWidget):
             if len(entry.result_list) > 0:
                 self.entries.append(entry)
                 self.list_layout.addWidget(ListItem(entry, self))
-                self.search_bar.setToolTip('Enter Artist')
             else:
+                self.search_bar.setTextColor(QColor.fromRgb(200, 0, 0))
+                self.search_bar.append(entry.query)
+                self.search_bar.setToolTip('No results found')
+                self.search_bar.setStyleSheet("border: 1px solid red;")
                 try:
                     self.entries.remove(entry)
-                    self.search_bar.setToolTip('No results found')
-                    self.search_bar.setStyleSheet("border: 1px solid red;")
                 except ValueError:
                     pass
 
