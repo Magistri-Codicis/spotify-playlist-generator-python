@@ -128,6 +128,12 @@ class Util(QThread):
 
     def add_tracks(self, tracks):
         self.output.emit(0, "Adding Tracks...", self.progress)
+    if  len(tracks) > 100:
+        for i in range(0, len(tracks), 100):
+            self.progress += 10 / len(tracks)
+            self.sp.playlist_add_items(self.playlist_id, tracks[i:i + 100])
+            self.output.emit(0, "Adding Tracks...", self.progress)
+    else:
         self.sp.playlist_add_items(self.playlist_id, tracks)
         self.progress += 10
 
