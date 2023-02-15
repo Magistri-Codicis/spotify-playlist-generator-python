@@ -92,3 +92,5 @@ class Settings(QWidget):
             self.pbar.setValue(100)
             self.pbar.setFormat(msg + " (%p%)")
             self.output_scroll.append(msg)
+        elif type == 3:
+            self.output_scroll.append(msg)

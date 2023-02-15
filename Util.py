@@ -128,14 +128,14 @@ class Util(QThread):
 
     def add_tracks(self, tracks):
         self.output.emit(0, "Adding Tracks...", self.progress)
-    if  len(tracks) > 100:
-        for i in range(0, len(tracks), 100):
-            self.progress += 10 / len(tracks)
-            self.sp.playlist_add_items(self.playlist_id, tracks[i:i + 100])
-            self.output.emit(0, "Adding Tracks...", self.progress)
-    else:
-        self.sp.playlist_add_items(self.playlist_id, tracks)
-        self.progress += 10
+        if len(tracks) > 100:
+            for i in range(0, len(tracks), 100):
+                self.progress += 10 / len(tracks)
+                self.sp.playlist_add_items(self.playlist_id, tracks[i:i + 100])
+                self.output.emit(0, "Adding Tracks...", self.progress)
+        else:
+            self.sp.playlist_add_items(self.playlist_id, tracks)
+            self.progress += 10
 
     def get_all_tracks(self, selected_artists: List[ArtistListEntry], tracks_per_artist=5, shuffle=False):
         self.progress += 10
@@ -182,5 +182,5 @@ class Util(QThread):
         self.add_tracks(tracks)
         self.output.emit(0, "Added tracks", self.progress)
         self.progress = 100
-        self.output.emit(0, "Finished", self.progress)
-        self.output.emit(1, f"Playlist at: https://open.spotify.com/playlist/{self.playlist_id}", self.progress)
+        self.output.emit(1, "Finished", self.progress)
+        self.output.emit(3, f"Playlist at: https://open.spotify.com/playlist/{self.playlist_id}", self.progress)
