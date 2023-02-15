@@ -1,5 +1,6 @@
 import os
 import random
+import requests
 from typing import List
 
 import requests.exceptions
@@ -9,14 +10,112 @@ from PyQt5.QtCore import pyqtSignal, QThread
 from PyQt5.QtWidgets import QMessageBox, QWidget, QTextEdit
 from spotipy import SpotifyOAuth
 
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager.microsoft import IEDriverManager, EdgeChromiumDriverManager
+
 from Artist.ArtistListEntry import ArtistListEntry
+
+from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
+
+
+def get_selenium_driver():
+    try:
+        service = Service(executable_path=ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service)
+        return driver
+    except:
+        try:
+            service = Service(executable_path=GeckoDriverManager().install())
+            driver = webdriver.Firefox(service=service)
+            return driver
+        except:
+            try:
+                service = Service(executable_path=EdgeChromiumDriverManager().install())
+                driver = webdriver.Edge(service=service)
+                return driver
+            except:
+                return None
+
+
+def create_spotify_application(name, description, redirect_uris):
+    url = "https://accounts.spotify.com/authorize?client_id=a5429cc04d0b4bf78872d22a60ec4c4b&response_type=token" \
+          "&redirect_uri=https://developer.spotify.com/dashboard/oauth_callback/&scope=user-self-provisioning"
+
+    # 1. Create a new instance of the Chrome driver
+    driver = get_selenium_driver()
+
+    if driver is None:
+        print("Please install a supported browser like Chrome, Firefox or Edge")
+        exit(0)
+
+    # 2. Load the authentication URL and wait for the user to log in
+    driver.follow_redirects = False
+    driver.get(url)
+
+    # 3. Wait for the user to be redirected to the callback URL and extract the access token
+    WebDriverWait(driver, 9999).until(EC.url_contains("https://developer.spotify.com/dashboard"
+                                                      "/oauth_callback"))
+
+    redirect_url = driver.current_url
+    access_token = redirect_url.split("access_token=")[1].split("&")[0]
+
+    driver.quit()
+
+    # Make the API call to create the Spotify application
+    headers = {
+        'authority': 'api.spotify.com',
+        'accept': 'application/json',
+        'authorization': f'Bearer {access_token}',
+        'content-type': 'application/json',
+    }
+    data = {
+        "name": name,
+        "description": description,
+        "homepage": "",
+        "redirect_uris": redirect_uris
+    }
+
+    response = requests.post('https://api.spotify.com/webapi-provisioning/applications', headers=headers, json=data)
+
+    if response.status_code == 200:
+        print("Application created successfully")
+        client_id = response.json()['client_id']
+        client_secret = response.json()['client_secret']
+    else:
+        print(f"Request failed with error {response.status_code}")
+        return
+
+    return client_id, client_secret, redirect_uris[0]
 
 
 def load_env():
-    with open('.env') as f:
-        for line in f:
-            key, value = line.split('=')
-            os.environ[key] = value.rstrip()
+    print("Loading .env file")
+    if os.path.isfile('.env'):
+        with open('.env', 'r') as f:
+            for line in f:
+                key, value = line.split('=')
+                os.environ[key] = value.rstrip()
+            f.close()
+    else:
+        print("No .env file found.")
+        print("Creating new application")
+        client_id, client_secret, redirect_uri = create_spotify_application("Playlist Generator", "Generates playlists from artists",
+                                                                            ["http://localhost:9999/callback"])
+        with open('.env', 'w') as f:
+            f.write(f"SPOTIPY_CLIENT_ID={client_id}\n")
+            f.write(f"SPOTIPY_CLIENT_SECRET={client_secret}\n")
+            f.write(f"SPOTIPY_REDIRECT_URI={redirect_uri}\n")
+            f.close()
+        os.environ['SPOTIPY_CLIENT_ID'] = client_id
+        os.environ['SPOTIPY_CLIENT_SECRET'] = client_secret
+        os.environ['SPOTIPY_REDIRECT_URI'] = redirect_uri
+        # Delete cache file
+        if os.path.isfile('.cache'):
+            os.remove('.cache')
 
 
 def flattenArray(array):
@@ -65,7 +164,6 @@ class Util(QThread):
             scope = 'playlist-modify-public'
             self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
             self.username = self.sp.me()['display_name']
-            self.output.emit(0, 'Successfully authenticated as ' + self.username, 100)
         except requests.exceptions.ConnectionError or urllib3.exceptions.MaxRetryError:
             QMessageBox.about(QWidget(), "Network Error", "No Connection established. Check you Internet connection.")
 
