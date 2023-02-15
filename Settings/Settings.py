@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget, QBoxLayout, QLineEdit, QTextEdit, QSpinBox,
 
 
 class Settings(QWidget):
-    def __init__(self, util, parent=None, artist_list=None):
+    def __init__(self, util, parent=None, artist_list=None, app=None):
         super().__init__(parent)
         self.playlist_url = None
         self.util = util
@@ -21,6 +21,7 @@ class Settings(QWidget):
         self.playlist_description_input = QTextEdit()
         self.do_shuffle_input = QCheckBox()
         self.generate_button = QPushButton("Generate Playlist")
+        self.generate_button.setDisabled(True)
 
         self.song_count_input.setValue(self.song_count)
         self.playlist_name_input.setText(self.playlist_name)
