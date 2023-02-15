@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QBoxLayout, QLineEdit, QTextEdit, QSpinBox, QCheckBox, QPushButton, QLabel, \
-    QProgressBar
+    QProgressBar, QTextBrowser
 
 
 class Settings(QWidget):
@@ -45,8 +45,10 @@ class Settings(QWidget):
         self.pbar.setAlignment(Qt.AlignCenter)
 
         self.output_label = QLabel("Output")
-        self.output_scroll = QTextEdit()
+        self.output_scroll = QTextBrowser()
+
         self.output_scroll.setReadOnly(True)
+        self.output_scroll.setOpenExternalLinks(True)
 
         self.output_layout.addWidget(self.output_label)
         self.output_layout.addWidget(self.output_scroll)
@@ -71,13 +73,14 @@ class Settings(QWidget):
 
     def generatePlaylist(self):
         self.output_scroll.clear()
+        self.util.reset()
         self.song_count = self.song_count_input.value()
         self.playlist_name = self.playlist_name_input.text()
         self.playlist_description = self.playlist_description_input.toPlainText()
         self.do_shuffle = self.do_shuffle_input.isChecked()
         self.playlist_url = self.util.generate_playlist(self.artist_list, self.song_count, self.playlist_name,
                                                         self.playlist_description,
-                                                        self.do_shuffle, self.output_scroll)
+                                                        self.do_shuffle)
         self.util.output.connect(self.sigCallback)
 
     def sigCallback(self, type, msg, progress):
@@ -94,4 +97,9 @@ class Settings(QWidget):
             self.pbar.setFormat(msg + " (%p%)")
             self.output_scroll.append(msg)
         elif type == 3:
-            self.output_scroll.append(msg)
+            # If msg is a URL, make it clickable
+            if "http" in msg:
+                msg = f'<a href="{msg}">{msg}</a>'
+                self.output_scroll.append(msg)
+            else:
+                self.output_scroll.append(msg)

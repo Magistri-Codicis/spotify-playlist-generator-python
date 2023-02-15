@@ -103,7 +103,8 @@ def load_env():
     else:
         print("No .env file found.")
         print("Creating new application")
-        client_id, client_secret, redirect_uri = create_spotify_application("Playlist Generator", "Generates playlists from artists",
+        client_id, client_secret, redirect_uri = create_spotify_application("Playlist Generator",
+                                                                            "Generates playlists from artists",
                                                                             ["http://localhost:9999/callback"])
         with open('.env', 'w') as f:
             f.write(f"SPOTIPY_CLIENT_ID={client_id}\n")
@@ -125,12 +126,6 @@ def flattenArray(array):
     return array
 
 
-def log_to_widget(text, output_widget: QTextEdit):
-    if output_widget is not None:
-        output_widget.append(text)
-    else:
-        print(text)
-
 
 class Util(QThread):
     output = pyqtSignal(int, str, int)
@@ -148,7 +143,6 @@ class Util(QThread):
         self.sp: spotipy.Spotify = None
         self.username = None
         self.playlist_id = None
-        self.output_widget = None
         load_env()
 
     def run(self):
@@ -256,14 +250,12 @@ class Util(QThread):
             random.shuffle(return_tracks)
         return return_tracks
 
-    def generate_playlist(self, artists, tracks_per_artist, playlist_name, playlist_description, shuffle,
-                          output_widget: QTextEdit = None):
+    def generate_playlist(self, artists, tracks_per_artist, playlist_name, playlist_description, shuffle):
         self.artists = artists
         self.tracks_per_artist = tracks_per_artist
         self.playlist_name = playlist_name
         self.playlist_description = playlist_description
         self.shuffle = shuffle
-        self.output_widget = output_widget
         self.start()
 
     def generate(self, artists, tracks_per_artist, playlist_name, playlist_description, shuffle):
@@ -283,4 +275,15 @@ class Util(QThread):
         self.output.emit(0, "Added tracks", self.progress)
         self.progress = 100
         self.output.emit(1, "Finished", self.progress)
-        self.output.emit(3, f"Playlist at: https://open.spotify.com/playlist/{self.playlist_id}", self.progress)
+        self.output.emit(3, f"Playlist at:", self.progress)
+        self.output.emit(3, f"https://open.spotify.com/playlist/{self.playlist_id}", self.progress)
+
+    def reset(self):
+        self.progress = 0
+        self.shuffle = None
+        self.playlist_description = None
+        self.playlist_name = None
+        self.tracks_per_artist = None
+        self.artists = None
+        self.isGenerating = False
+        self.playlist_id = None
