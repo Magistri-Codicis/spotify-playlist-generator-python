@@ -126,7 +126,6 @@ def flattenArray(array):
     return array
 
 
-
 class Util(QThread):
     output = pyqtSignal(int, str, int)
     progress = 0
@@ -180,28 +179,31 @@ class Util(QThread):
         raw_tracks = []
         tracks = dict()
         request_limit = limit + offset
-        if request_limit <= 50:
-            result = self.sp.artist_albums(artist_id, limit=50, country=country,
-                                           album_type='single,album')['items']
+        if request_limit <= 10:
+            raw_tracks = self.sp.artist_top_tracks(artist_id, country=country)['tracks']
         else:
-            result = self.sp.artist_albums(artist_id, limit=50, country=country, album_type='album,single')['items']
-            loop_count = int(request_limit / 50)
-            i = 0
-            while len(result) < request_limit and loop_count > 0:
-                new_tracks = self.sp.artist_albums(artist_id, limit=50, offset=i, country=country,
-                                                   album_type='album,single')['items']
-                if len(new_tracks) == 0:
-                    break
-                result.extend(new_tracks)
-                loop_count -= 1
-                i += 50
+            if request_limit <= 50:
+                result = self.sp.artist_albums(artist_id, limit=50, country=country,
+                                               album_type='single,album')['items']
+            else:
+                result = self.sp.artist_albums(artist_id, limit=50, country=country, album_type='album,single')['items']
+                loop_count = int(request_limit / 50)
+                i = 0
+                while len(result) < request_limit and loop_count > 0:
+                    new_tracks = self.sp.artist_albums(artist_id, limit=50, offset=i, country=country,
+                                                       album_type='album,single')['items']
+                    if len(new_tracks) == 0:
+                        break
+                    result.extend(new_tracks)
+                    loop_count -= 1
+                    i += 50
 
-        for album in result:
-            album_tracks = []
-            for track in self.sp.album_tracks(album['id'])['items']:
-                album_tracks.append(track['id'])
-            track_catalog = self.sp.tracks(album_tracks)
-            raw_tracks.extend(track_catalog['tracks'])
+                for album in result:
+                    album_tracks = []
+                    for track in self.sp.album_tracks(album['id'])['items']:
+                        album_tracks.append(track['id'])
+                    track_catalog = self.sp.tracks(album_tracks)
+                    raw_tracks.extend(track_catalog['tracks'])
 
         raw_tracks.sort(key=lambda x: x['popularity'], reverse=True)
         loop_count = 0

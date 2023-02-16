@@ -34,6 +34,10 @@ class ListItem(QWidget):
         self.layout.addWidget(self.delete_button)
         self.layout.addWidget(self.modify_button)
 
+    def closeSelection(self):
+        self.selection_is_active = False
+        self.modify_button.setText('Modify')
+        self.artist_card.setParent(None)
     def toggleSelection(self, parent, artist: ArtistListEntry):
         if self.selection_is_active:
             self.selection_is_active = False
@@ -45,6 +49,7 @@ class ListItem(QWidget):
                                                                                        Qt.KeepAspectRatioByExpanding))
             self.artist_card.setParent(None)
         else:
+            parent.closeAllSelections()
             self.selection_is_active = True
             self.modify_button.setText('Confirm')
             parent.artist_selection_layout.addWidget(self.artist_card)
