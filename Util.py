@@ -103,7 +103,8 @@ def load_env():
     else:
         print("No .env file found.")
         print("Creating new application")
-        client_id, client_secret, redirect_uri = create_spotify_application("Playlist Generator", "Generates playlists from artists",
+        client_id, client_secret, redirect_uri = create_spotify_application("Playlist Generator",
+                                                                            "Generates playlists from artists",
                                                                             ["http://localhost:9999/callback"])
         with open('.env', 'w') as f:
             f.write(f"SPOTIPY_CLIENT_ID={client_id}\n")
@@ -125,13 +126,6 @@ def flattenArray(array):
     return array
 
 
-def log_to_widget(text, output_widget: QTextEdit):
-    if output_widget is not None:
-        output_widget.append(text)
-    else:
-        print(text)
-
-
 class Util(QThread):
     output = pyqtSignal(int, str, int)
     progress = 0
@@ -148,7 +142,6 @@ class Util(QThread):
         self.sp: spotipy.Spotify = None
         self.username = None
         self.playlist_id = None
-        self.output_widget = None
         load_env()
 
     def run(self):
@@ -186,26 +179,31 @@ class Util(QThread):
         raw_tracks = []
         tracks = dict()
         request_limit = limit + offset
-        if request_limit <= 50:
-            result = self.sp.artist_albums(artist_id, limit=request_limit, country=country,
-                                           album_type='album,single')
+        if request_limit <= 10:
+            raw_tracks = self.sp.artist_top_tracks(artist_id, country=country)['tracks']
         else:
-            result = self.sp.artist_albums(artist_id, limit=50, country=country, album_type='album,single')
-            loop_count = int(request_limit / 50)
-            while len(result) < request_limit and loop_count > 0:
-                new_tracks = self.sp.artist_albums(artist_id, limit=50, offset=len(result), country=country,
-                                                   album_type='album,single')['items']
-                if len(new_tracks) == 0:
-                    break
-                result['items'].extend(new_tracks)
-                loop_count -= 1
+            if request_limit <= 50:
+                result = self.sp.artist_albums(artist_id, limit=50, country=country,
+                                               album_type='single,album')['items']
+            else:
+                result = self.sp.artist_albums(artist_id, limit=50, country=country, album_type='album,single')['items']
+                loop_count = int(request_limit / 50)
+                i = 0
+                while len(result) < request_limit and loop_count > 0:
+                    new_tracks = self.sp.artist_albums(artist_id, limit=50, offset=i, country=country,
+                                                       album_type='album,single')['items']
+                    if len(new_tracks) == 0:
+                        break
+                    result.extend(new_tracks)
+                    loop_count -= 1
+                    i += 50
 
-        for album in result['items']:
-            album_tracks = []
-            for track in self.sp.album_tracks(album['id'])['items']:
-                album_tracks.append(track['id'])
-            track_catalog = self.sp.tracks(album_tracks)
-            raw_tracks.extend(track_catalog['tracks'])
+                for album in result:
+                    album_tracks = []
+                    for track in self.sp.album_tracks(album['id'])['items']:
+                        album_tracks.append(track['id'])
+                    track_catalog = self.sp.tracks(album_tracks)
+                    raw_tracks.extend(track_catalog['tracks'])
 
         raw_tracks.sort(key=lambda x: x['popularity'], reverse=True)
         loop_count = 0
@@ -254,14 +252,12 @@ class Util(QThread):
             random.shuffle(return_tracks)
         return return_tracks
 
-    def generate_playlist(self, artists, tracks_per_artist, playlist_name, playlist_description, shuffle,
-                          output_widget: QTextEdit = None):
+    def generate_playlist(self, artists, tracks_per_artist, playlist_name, playlist_description, shuffle):
         self.artists = artists
         self.tracks_per_artist = tracks_per_artist
         self.playlist_name = playlist_name
         self.playlist_description = playlist_description
         self.shuffle = shuffle
-        self.output_widget = output_widget
         self.start()
 
     def generate(self, artists, tracks_per_artist, playlist_name, playlist_description, shuffle):
@@ -281,4 +277,15 @@ class Util(QThread):
         self.output.emit(0, "Added tracks", self.progress)
         self.progress = 100
         self.output.emit(1, "Finished", self.progress)
-        self.output.emit(3, f"Playlist at: https://open.spotify.com/playlist/{self.playlist_id}", self.progress)
+        self.output.emit(3, f"Playlist at:", self.progress)
+        self.output.emit(3, f"https://open.spotify.com/playlist/{self.playlist_id}", self.progress)
+
+    def reset(self):
+        self.progress = 0
+        self.shuffle = None
+        self.playlist_description = None
+        self.playlist_name = None
+        self.tracks_per_artist = None
+        self.artists = None
+        self.isGenerating = False
+        self.playlist_id = None

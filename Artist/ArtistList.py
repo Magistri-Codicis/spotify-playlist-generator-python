@@ -81,6 +81,10 @@ class ArtistList(QWidget):
                         queries.append(semi.strip())
         return queries
 
+    def closeAllSelections(self):
+        for i in reversed(range(self.list_layout.count())):
+            self.list_layout.itemAt(i).widget().closeSelection()
+
     def addArtist(self):
         query = self.search_bar.toPlainText()
         queries = self.parseArtists(query)
