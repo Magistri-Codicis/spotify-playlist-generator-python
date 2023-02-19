@@ -1,5 +1,7 @@
 import os
 import random
+import sys
+
 import requests
 from typing import List
 
@@ -7,12 +9,12 @@ import requests.exceptions
 import spotipy
 import urllib3.exceptions
 from PyQt5.QtCore import pyqtSignal, QThread
-from PyQt5.QtWidgets import QMessageBox, QWidget, QTextEdit
+from PyQt5.QtWidgets import QMessageBox, QWidget
 from spotipy import SpotifyOAuth
 
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
-from webdriver_manager.microsoft import IEDriverManager, EdgeChromiumDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 from Artist.ArtistListEntry import ArtistListEntry
 
@@ -50,7 +52,7 @@ def create_spotify_application(name, description, redirect_uris):
 
     if driver is None:
         print("Please install a supported browser like Chrome, Firefox or Edge")
-        exit(0)
+        sys.exit(0)
 
     # 2. Load the authentication URL and wait for the user to log in
     driver.follow_redirects = False
@@ -130,7 +132,6 @@ class Util(QThread):
     output = pyqtSignal(int, str, int)
     progress = 0
 
-    # TODO: Refactor to use signals
     def __init__(self):
         super(Util, self).__init__()
         self.shuffle = None

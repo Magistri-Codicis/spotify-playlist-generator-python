@@ -21,7 +21,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-LicenseFile=C:\Users\eliot\PycharmProjects\spotify-playlist-generator-python\LICENCE.MD
+LicenseFile=C:\Users\eliot\PycharmProjects\spotify-playlist-generator-python\LICENSE.md
 InfoBeforeFile=C:\Users\eliot\PycharmProjects\spotify-playlist-generator-python\TOS.md
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
